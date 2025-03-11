@@ -54,4 +54,4 @@ export PYTHONUNBUFFERED=1
 
 # Start the application
 echo "Starting application..."
-exec gunicorn --bind 0.0.0.0:8080 app:app 
+exec gunicorn --bind 0.0.0.0:8080 wsgi:app 
