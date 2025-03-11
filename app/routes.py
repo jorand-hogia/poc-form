@@ -6,6 +6,7 @@ from flask_restx import Api, Resource, fields
 from app import db
 from app.models import Submission
 from app.schemas import submission_schema, submissions_schema
+import os
 
 # Blueprint for web interface
 main_bp = Blueprint('main', __name__)
@@ -30,11 +31,20 @@ def submit():
     new_submission = Submission(subject=subject, context=context)
     
     try:
+        # Print debug info
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Instance path exists: {os.path.exists('instance')}")
+        print(f"Instance path permissions: {os.stat('instance').st_mode}")
+        
+        # Add to database
         db.session.add(new_submission)
         db.session.commit()
         flash('Your submission has been recorded!', 'success')
     except Exception as e:
         db.session.rollback()
+        import traceback
+        print(f"Database error: {str(e)}")
+        print(traceback.format_exc())
         flash(f'An error occurred: {str(e)}', 'error')
     
     return redirect(url_for('main.index'))

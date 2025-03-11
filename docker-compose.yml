@@ -4,6 +4,7 @@ services:
   form-service:
     build: .
     container_name: form-service
+    user: root
     ports:
       - "8080:8080"
     environment:
@@ -12,15 +13,15 @@ services:
       - SECRET_KEY=development-key
       - DATABASE_URL=sqlite:///instance/submissions.db
     volumes:
-      - ./instance:/app/instance
+      - db_data:/app/instance
     restart: unless-stopped
     networks:
       - app-network
       - poc-portal-network
 
-# Create the instance volume directory if it doesn't exist
+# Named volumes for persistence
 volumes:
-  instance:
+  db_data:
     driver: local
 
 networks:
