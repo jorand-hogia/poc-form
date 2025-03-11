@@ -1,17 +1,20 @@
 from app import ma
 from app.models import Submission
-from marshmallow import fields, validate
+from marshmallow import fields, validate, Schema
 
-class SubmissionSchema(ma.SQLAlchemyAutoSchema):
+class SubmissionSchema(Schema):
     """Schema for Submission model"""
-    class Meta:
-        model = Submission
-        load_instance = True
-        
-    # Add validation
+    id = fields.Integer(dump_only=True)
     subject = fields.String(required=True, validate=validate.Length(min=1, max=200))
     context = fields.String(required=True, validate=validate.Length(min=1))
     created_at = fields.DateTime(dump_only=True)
+    
+    # Custom deserializer to create Submission objects
+    def make_submission(self, data, **kwargs):
+        return Submission(
+            subject=data.get('subject'),
+            context=data.get('context')
+        )
     
 # Initialize schemas
 submission_schema = SubmissionSchema()

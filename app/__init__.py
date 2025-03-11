@@ -1,16 +1,13 @@
 from flask import Flask, request, current_app
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 from flask_marshmallow import Marshmallow
 import os
 from flask_cors import CORS
 from flask_restx import Api
 import sys
 import logging
+import flask
 
 # Initialize extensions
-db = SQLAlchemy()
-migrate = Migrate()
 ma = Marshmallow()
 
 def create_app(test_config=None):
@@ -24,30 +21,12 @@ def create_app(test_config=None):
     # Configure the app
     app.config.from_mapping(
         SECRET_KEY=os.environ.get('SECRET_KEY', 'dev'),
-        # Use different paths for container vs local development
-        SQLALCHEMY_DATABASE_URI=os.environ.get(
-            'DATABASE_URL', 
-            'sqlite:////app/instance/submissions.db' if in_container else 'sqlite:///instance/submissions.db'
-        ),
-        SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        SQLALCHEMY_ECHO=True,  # Add SQL query logging
         # Add Swagger UI settings
         RESTX_SWAGGER_UI_DOC_EXPANSION='list',
         RESTX_VALIDATE=True,
         RESTX_MASK_SWAGGER=False,
         RESTX_ERROR_404_HELP=False,
     )
-    
-    # Fix SQLite URI for absolute paths
-    db_uri = app.config['SQLALCHEMY_DATABASE_URI']
-    if db_uri.startswith('sqlite:///') and not db_uri.startswith('sqlite:////'):
-        # It's a relative path, make sure it's relative to instance folder
-        if not in_container:
-            # For local dev, make sure it's under instance/
-            if not '/instance/' in db_uri and not '\\instance\\' in db_uri:
-                db_path = db_uri.replace('sqlite:///', 'sqlite:///instance/')
-                app.config['SQLALCHEMY_DATABASE_URI'] = db_path
-                print(f"Adjusted database URI: {db_path}")
     
     # Enable proxy support and configure external URL handling
     app.config['PREFERRED_URL_SCHEME'] = 'https'
@@ -66,23 +45,9 @@ def create_app(test_config=None):
 
     app.wsgi_app = ReverseProxied(app.wsgi_app)
     
-    # Debug output for database connection
-    db_uri = app.config['SQLALCHEMY_DATABASE_URI']
-    print(f"Database URI: {db_uri}")
+    # Debug output for storage
     print(f"Instance path: {app.instance_path}")
     print(f"Current directory: {os.getcwd()}")
-    
-    # For SQLite, extract the database file path and check if it's accessible
-    if db_uri.startswith('sqlite:///'):
-        db_path = db_uri.replace('sqlite:///', '')
-        print(f"SQLite database file path: {db_path}")
-        db_dir = os.path.dirname(db_path)
-        print(f"Database directory: {db_dir}")
-        print(f"Database directory exists: {os.path.exists(db_dir)}")
-        print(f"Database directory is writable: {os.access(db_dir, os.W_OK)}")
-        print(f"Database file exists: {os.path.exists(db_path)}")
-        if os.path.exists(db_path):
-            print(f"Database file permissions: {os.stat(db_path).st_mode}")
     
     if test_config is None:
         # Load the instance config, if it exists, when not testing
@@ -113,11 +78,9 @@ def create_app(test_config=None):
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     ))
     app.logger.addHandler(handler)
-    app.logger.info('Application starting up with Flask %s', Flask.__version__)
+    app.logger.info('Application starting up')
     
-    # Initialize db with newer Flask-SQLAlchemy compatibility
-    db.init_app(app)
-    migrate.init_app(app, db)
+    # Initialize extensions
     ma.init_app(app)
     
     # Register blueprints
@@ -131,5 +94,10 @@ def create_app(test_config=None):
     @app.route('/health')
     def health_check():
         return {'status': 'healthy'}, 200
+    
+    # Initialize file storage
+    from app.file_storage import ensure_storage_dir
+    with app.app_context():
+        ensure_storage_dir()
         
     return app 
