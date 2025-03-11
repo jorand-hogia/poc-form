@@ -1,14 +1,11 @@
 from flask import Flask, request, current_app
-from flask_marshmallow import Marshmallow
 import os
 from flask_cors import CORS
 from flask_restx import Api
 import sys
 import logging
 import flask
-
-# Initialize extensions
-ma = Marshmallow()
+from app.db import db  # Import the dummy db object for compatibility
 
 def create_app(test_config=None):
     """Application factory for Flask app"""
@@ -79,9 +76,6 @@ def create_app(test_config=None):
     ))
     app.logger.addHandler(handler)
     app.logger.info('Application starting up')
-    
-    # Initialize extensions
-    ma.init_app(app)
     
     # Register blueprints
     from app.routes import main_bp, api_bp
