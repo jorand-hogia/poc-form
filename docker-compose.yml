@@ -18,6 +18,11 @@ services:
       - app-network
       - poc-portal-network
 
+# Create the instance volume directory if it doesn't exist
+volumes:
+  instance:
+    driver: local
+
 networks:
   app-network:
     driver: bridge
