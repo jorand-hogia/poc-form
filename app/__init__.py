@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_marshmallow import Marshmallow
@@ -6,6 +6,7 @@ import os
 from flask_cors import CORS
 from flask_restx import Api
 import sys
+import logging
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -105,7 +106,16 @@ def create_app(test_config=None):
     except Exception as e:
         print(f"Error with instance folder: {str(e)}")
     
-    # Initialize db
+    # Set up logging
+    app.logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    ))
+    app.logger.addHandler(handler)
+    app.logger.info('Application starting up with Flask %s', Flask.__version__)
+    
+    # Initialize db with newer Flask-SQLAlchemy compatibility
     db.init_app(app)
     migrate.init_app(app, db)
     ma.init_app(app)
