@@ -11,10 +11,10 @@ services:
       - FLASK_APP=app.py
       - FLASK_ENV=production
       - SECRET_KEY=development-key
-      - DATABASE_URL=sqlite:////app/instance/submissions.db
+      - STORAGE_DIR=/app/instance
       - APPLICATION_ROOT=/
     volumes:
-      - db_data:/app/instance
+      - storage_data:/app/instance
     restart: unless-stopped
     networks:
       - app-network
@@ -22,7 +22,7 @@ services:
 
 # Named volumes for persistence
 volumes:
-  db_data:
+  storage_data:
     driver: local
     driver_opts:
       type: none

@@ -4,29 +4,35 @@ This module provides functions to persist and retrieve data using JSON files.
 """
 import json
 import os
-import time
 from datetime import datetime
 from pathlib import Path
 import logging
+from flask import current_app
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# File storage settings
-STORAGE_DIR = "instance"
-SUBMISSIONS_FILE = os.path.join(STORAGE_DIR, "submissions.json")
+def get_storage_dir():
+    """Get the storage directory from app config or use default"""
+    return current_app.config.get('STORAGE_DIR', 'instance')
+
+def get_submissions_file():
+    """Get the path to the submissions file"""
+    return os.path.join(get_storage_dir(), "submissions.json")
 
 def ensure_storage_dir():
     """Ensure the storage directory exists"""
-    os.makedirs(STORAGE_DIR, exist_ok=True)
-    logger.info(f"Ensured storage directory: {STORAGE_DIR}")
+    storage_dir = get_storage_dir()
+    os.makedirs(storage_dir, exist_ok=True)
+    logger.info(f"Ensured storage directory: {storage_dir}")
     
 def load_submissions():
     """Load submissions from the JSON file"""
     ensure_storage_dir()
+    submissions_file = get_submissions_file()
     try:
-        if os.path.exists(SUBMISSIONS_FILE):
-            with open(SUBMISSIONS_FILE, 'r') as f:
+        if os.path.exists(submissions_file):
+            with open(submissions_file, 'r') as f:
                 return json.load(f)
         return []
     except Exception as e:
@@ -36,8 +42,9 @@ def load_submissions():
 def save_submissions(submissions):
     """Save submissions to the JSON file"""
     ensure_storage_dir()
+    submissions_file = get_submissions_file()
     try:
-        with open(SUBMISSIONS_FILE, 'w') as f:
+        with open(submissions_file, 'w') as f:
             json.dump(submissions, f, indent=2, default=json_serial)
         return True
     except Exception as e:

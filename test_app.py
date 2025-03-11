@@ -1,19 +1,32 @@
 import pytest
+import os
+import json
+import shutil
 from app import create_app
 from app.models import Submission
-from app import db
 
 @pytest.fixture
 def app():
+    # Create test storage directory
+    test_storage_dir = "instance_test"
+    os.makedirs(test_storage_dir, exist_ok=True)
+    
+    # Create test app with configuration
     app = create_app({
         'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+        'STORAGE_DIR': test_storage_dir
     })
     
+    # Create empty submissions file for testing
+    test_submissions_file = os.path.join(test_storage_dir, "submissions.json")
+    with open(test_submissions_file, 'w') as f:
+        json.dump([], f)
+    
     with app.app_context():
-        db.create_all()
         yield app
-        db.drop_all()
+        
+        # Clean up test storage
+        shutil.rmtree(test_storage_dir, ignore_errors=True)
 
 @pytest.fixture
 def client(app):

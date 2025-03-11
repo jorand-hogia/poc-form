@@ -1,0 +1,423 @@
+warning: in the working copy of 'entrypoint.sh', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/app/__init__.py b/app/__init__.py[m
+[1mindex b8d04f5..5f7e804 100644[m
+[1m--- a/app/__init__.py[m
+[1m+++ b/app/__init__.py[m
+[36m@@ -1,5 +1,4 @@[m
+ from flask import Flask, request, current_app[m
+[31m-from flask_marshmallow import Marshmallow[m
+ import os[m
+ from flask_cors import CORS[m
+ from flask_restx import Api[m
+[36m@@ -7,9 +6,6 @@[m [mimport sys[m
+ import logging[m
+ import flask[m
+ [m
+[31m-# Initialize extensions[m
+[31m-ma = Marshmallow()[m
+[31m-[m
+ def create_app(test_config=None):[m
+     """Application factory for Flask app"""[m
+     # Create and configure the app[m
+[36m@@ -80,9 +76,6 @@[m [mdef create_app(test_config=None):[m
+     app.logger.addHandler(handler)[m
+     app.logger.info('Application starting up')[m
+     [m
+[31m-    # Initialize extensions[m
+[31m-    ma.init_app(app)[m
+[31m-    [m
+     # Register blueprints[m
+     from app.routes import main_bp, api_bp[m
+     app.register_blueprint(main_bp)[m
+[1mdiff --git a/app/file_storage.py b/app/file_storage.py[m
+[1mindex 2b4196e..e48883c 100644[m
+[1m--- a/app/file_storage.py[m
+[1m+++ b/app/file_storage.py[m
+[36m@@ -4,29 +4,35 @@[m [mThis module provides functions to persist and retrieve data using JSON files.[m
+ """[m
+ import json[m
+ import os[m
+[31m-import time[m
+ from datetime import datetime[m
+ from pathlib import Path[m
+ import logging[m
+[32m+[m[32mfrom flask import current_app[m
+ [m
+ # Configure logging[m
+ logger = logging.getLogger(__name__)[m
+ [m
+[31m-# File storage settings[m
+[31m-STORAGE_DIR = "instance"[m
+[31m-SUBMISSIONS_FILE = os.path.join(STORAGE_DIR, "submissions.json")[m
+[32m+[m[32mdef get_storage_dir():[m
+[32m+[m[32m    """Get the storage directory from app config or use default"""[m
+[32m+[m[32m    return current_app.config.get('STORAGE_DIR', 'instance')[m
+[32m+[m
+[32m+[m[32mdef get_submissions_file():[m
+[32m+[m[32m    """Get the path to the submissions file"""[m
+[32m+[m[32m    return os.path.join(get_storage_dir(), "submissions.json")[m
+ [m
+ def ensure_storage_dir():[m
+     """Ensure the storage directory exists"""[m
+[31m-    os.makedirs(STORAGE_DIR, exist_ok=True)[m
+[31m-    logger.info(f"Ensured storage directory: {STORAGE_DIR}")[m
+[32m+[m[32m    storage_dir = get_storage_dir()[m
+[32m+[m[32m    os.makedirs(storage_dir, exist_ok=True)[m
+[32m+[m[32m    logger.info(f"Ensured storage directory: {storage_dir}")[m
+     [m
+ def load_submissions():[m
+     """Load submissions from the JSON file"""[m
+     ensure_storage_dir()[m
+[32m+[m[32m    submissions_file = get_submissions_file()[m
+     try:[m
+[31m-        if os.path.exists(SUBMISSIONS_FILE):[m
+[31m-            with open(SUBMISSIONS_FILE, 'r') as f:[m
+[32m+[m[32m        if os.path.exists(submissions_file):[m
+[32m+[m[32m            with open(submissions_file, 'r') as f:[m
+                 return json.load(f)[m
+         return [][m
+     except Exception as e:[m
+[36m@@ -36,8 +42,9 @@[m [mdef load_submissions():[m
+ def save_submissions(submissions):[m
+     """Save submissions to the JSON file"""[m
+     ensure_storage_dir()[m
+[32m+[m[32m    submissions_file = get_submissions_file()[m
+     try:[m
+[31m-        with open(SUBMISSIONS_FILE, 'w') as f:[m
+[32m+[m[32m        with open(submissions_file, 'w') as f:[m
+             json.dump(submissions, f, indent=2, default=json_serial)[m
+         return True[m
+     except Exception as e:[m
+[1mdiff --git a/app/schemas.py b/app/schemas.py[m
+[1mindex 8a41d18..2993e62 100644[m
+[1m--- a/app/schemas.py[m
+[1m+++ b/app/schemas.py[m
+[36m@@ -1,6 +1,5 @@[m
+[31m-from app import ma[m
+[32m+[m[32mfrom marshmallow import Schema, fields, validate[m
+ from app.models import Submission[m
+[31m-from marshmallow import fields, validate, Schema[m
+ [m
+ class SubmissionSchema(Schema):[m
+     """Schema for Submission model"""[m
+[1mdiff --git a/create_db.py b/create_db.py[m
+[1mdeleted file mode 100644[m
+[1mindex 6828cc8..0000000[m
+[1m--- a/create_db.py[m
+[1m+++ /dev/null[m
+[36m@@ -1,45 +0,0 @@[m
+[31m-#!/usr/bin/env python[m
+[31m-"""[m
+[31m-Very simple script to create a basic SQLite database file.[m
+[31m-This is useful when you encounter permission issues with SQLAlchemy.[m
+[31m-"""[m
+[31m-import os[m
+[31m-import sqlite3[m
+[31m-[m
+[31m-# Ensure instance directory exists[m
+[31m-instance_dir = "instance"[m
+[31m-if not os.path.exists(instance_dir):[m
+[31m-    os.makedirs(instance_dir)[m
+[31m-    print(f"Created directory: {instance_dir}")[m
+[31m-[m
+[31m-# Create the database file[m
+[31m-db_path = os.path.join(instance_dir, "submissions.db")[m
+[31m-print(f"Creating database at: {db_path}")[m
+[31m-[m
+[31m-# Connect to SQLite (this will create the file if it doesn't exist)[m
+[31m-conn = sqlite3.connect(db_path)[m
+[31m-[m
+[31m-# Create a basic table for testing[m
+[31m-cursor = conn.cursor()[m
+[31m-cursor.execute('''[m
+[31m-CREATE TABLE IF NOT EXISTS submissions ([m
+[31m-    id INTEGER PRIMARY KEY AUTOINCREMENT,[m
+[31m-    subject TEXT NOT NULL,[m
+[31m-    context TEXT NOT NULL,[m
+[31m-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP[m
+[31m-)[m
+[31m-''')[m
+[31m-[m
+[31m-# Commit and close[m
+[31m-conn.commit()[m
+[31m-conn.close()[m
+[31m-[m
+[31m-# Set permissions[m
+[31m-try:[m
+[31m-    os.chmod(db_path, 0o666)  # Read/write for everyone[m
+[31m-    print(f"Set permissions on database file: {db_path}")[m
+[31m-except Exception as e:[m
+[31m-    print(f"Warning: Could not set permissions: {e}")[m
+[31m-[m
+[31m-print(f"Database file created successfully at: {db_path}")[m
+[31m-print("You can now run the application with: python app.py") [m
+\ No newline at end of file[m
+[1mdiff --git a/docker-compose.yml b/docker-compose.yml[m
+[1mindex 5653dff..abd1efa 100644[m
+[1m--- a/docker-compose.yml[m
+[1m+++ b/docker-compose.yml[m
+[36m@@ -11,10 +11,10 @@[m [mservices:[m
+       - FLASK_APP=app.py[m
+       - FLASK_ENV=production[m
+       - SECRET_KEY=development-key[m
+[31m-      - DATABASE_URL=sqlite:////app/instance/submissions.db[m
+[32m+[m[32m      - STORAGE_DIR=/app/instance[m
+       - APPLICATION_ROOT=/[m
+     volumes:[m
+[31m-      - db_data:/app/instance[m
+[32m+[m[32m      - storage_data:/app/instance[m
+     restart: unless-stopped[m
+     networks:[m
+       - app-network[m
+[36m@@ -22,7 +22,7 @@[m [mservices:[m
+ [m
+ # Named volumes for persistence[m
+ volumes:[m
+[31m-  db_data:[m
+[32m+[m[32m  storage_data:[m
+     driver: local[m
+     driver_opts:[m
+       type: none[m
+[1mdiff --git a/entrypoint.sh b/entrypoint.sh[m
+[1mindex 25c52ea..86824f6 100644[m
+[1m--- a/entrypoint.sh[m
+[1m+++ b/entrypoint.sh[m
+[36m@@ -9,46 +9,20 @@[m [mls -la[m
+ echo "App directory permissions:"[m
+ ls -la /app[m
+ [m
+[31m-# Create the instance directory if it doesn't exist[m
+[31m-echo "Creating instance directory with proper permissions"[m
+[32m+[m[32m# Create the instance directory for file storage[m
+[32m+[m[32mecho "Creating storage directory with proper permissions"[m
+ mkdir -p /app/instance [m
+ chmod -R 777 /app/instance[m
+ ls -la /app/instance[m
+ [m
+[31m-# Explicitly set the database file path and permissions[m
+[31m-touch /app/instance/submissions.db[m
+[31m-chmod 666 /app/instance/submissions.db[m
+[31m-echo "Database file permissions:"[m
+[31m-ls -la /app/instance/submissions.db[m
+[31m-[m
+[31m-# Set up the database[m
+[31m-export FLASK_APP=app.py[m
+[31m-echo "Running database migrations..."[m
+[31m-[m
+[31m-# Skip db init if migrations directory already exists[m
+[31m-if [ ! -d "migrations" ]; then[m
+[31m-    echo "Initializing database..."[m
+[31m-    python -m flask db init[m
+[31m-else[m
+[31m-    echo "Migrations directory already exists, skipping init"[m
+[31m-fi[m
+[31m-[m
+[31m-# Run migrations (with simple error handling)[m
+[31m-echo "Attempting to run migrations..."[m
+[31m-python -m flask db migrate || echo "Migration failed, but continuing"[m
+[31m-python -m flask db upgrade || echo "Upgrade failed, but continuing"[m
+[31m-[m
+[31m-# Create a minimal database schema if migrations failed[m
+[31m-echo "Ensuring database schema exists..."[m
+[31m-python -c "[m
+[31m-from app import create_app, db[m
+[31m-app = create_app()[m
+[31m-with app.app_context():[m
+[31m-    db.create_all()[m
+[31m-    print('Database tables created')[m
+[31m-"[m
+[32m+[m[32m# Create submissions file if it doesn't exist[m
+[32m+[m[32mtouch /app/instance/submissions.json[m
+[32m+[m[32mchmod 666 /app/instance/submissions.json[m
+[32m+[m[32mecho "Storage file permissions:"[m
+[32m+[m[32mls -la /app/instance/submissions.json[m
+ [m
+ # Set environment variables for the application[m
+[32m+[m[32mexport FLASK_APP=app.py[m
+ export FLASK_ENV=production[m
+ export PYTHONUNBUFFERED=1[m
+ [m
+[1mdiff --git a/fix_db.py b/fix_db.py[m
+[1mdeleted file mode 100644[m
+[1mindex d916278..0000000[m
+[1m--- a/fix_db.py[m
+[1m+++ /dev/null[m
+[36m@@ -1,108 +0,0 @@[m
+[31m-#!/usr/bin/env python[m
+[31m-"""[m
+[31m-Database repair script.[m
+[31m-This script will completely recreate the SQLite database from scratch,[m
+[31m-ensuring proper paths, permissions, and schema creation.[m
+[31m-"""[m
+[31m-import os[m
+[31m-import shutil[m
+[31m-import sqlite3[m
+[31m-from app import create_app, db[m
+[31m-[m
+[31m-print("\n=== SQLITE DATABASE REPAIR TOOL ===")[m
+[31m-[m
+[31m-# Create application context[m
+[31m-app = create_app()[m
+[31m-[m
+[31m-with app.app_context():[m
+[31m-    # Get database path from config[m
+[31m-    db_uri = app.config['SQLALCHEMY_DATABASE_URI'][m
+[31m-    print(f"Database URI: {db_uri}")[m
+[31m-    [m
+[31m-    if not db_uri.startswith('sqlite:///'):[m
+[31m-        print(f"Error: This is only for SQLite databases. Current URI: {db_uri}")[m
+[31m-        exit(1)[m
+[31m-    [m
+[31m-    # Extract path from URI[m
+[31m-    db_path = db_uri.replace('sqlite:////', '').replace('sqlite:///', '')[m
+[31m-    print(f"Database path: {db_path}")[m
+[31m-    [m
+[31m-    # Ensure parent directories exist[m
+[31m-    db_dir = os.path.dirname(db_path)[m
+[31m-    if db_dir:[m
+[31m-        os.makedirs(db_dir, exist_ok=True)[m
+[31m-        print(f"Created directory: {db_dir}")[m
+[31m-        [m
+[31m-        # Set directory permissions[m
+[31m-        try:[m
+[31m-            os.chmod(db_dir, 0o777)[m
+[31m-            print(f"Set full permissions on: {db_dir}")[m
+[31m-        except Exception as e:[m
+[31m-            print(f"Warning: Could not set permissions on directory: {e}")[m
+[31m-    [m
+[31m-    # Remove existing database if it exists[m
+[31m-    if os.path.exists(db_path):[m
+[31m-        try:[m
+[31m-            print(f"Removing existing database: {db_path}")[m
+[31m-            os.remove(db_path)[m
+[31m-        except Exception as e:[m
+[31m-            print(f"Warning: Could not remove existing database: {e}")[m
+[31m-    [m
+[31m-    # Create fresh database file[m
+[31m-    try:[m
+[31m-        # Create empty file[m
+[31m-        with open(db_path, 'w') as f:[m
+[31m-            pass[m
+[31m-        [m
+[31m-        # Set full permissions[m
+[31m-        os.chmod(db_path, 0o666)[m
+[31m-        print(f"Created empty database file with permissions: {db_path}")[m
+[31m-        [m
+[31m-        # Test basic SQLite connection[m
+[31m-        conn = sqlite3.connect(db_path)[m
+[31m-        conn.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)")[m
+[31m-        conn.execute("INSERT INTO test VALUES (1)")[m
+[31m-        test_result = conn.execute("SELECT * FROM test").fetchone()[m
+[31m-        conn.close()[m
+[31m-        [m
+[31m-        if test_result and test_result[0] == 1:[m
+[31m-            print("Basic SQLite connection test: SUCCESSFUL")[m
+[31m-        else:[m
+[31m-            print("Basic SQLite connection test: FAILED - unexpected result")[m
+[31m-    except Exception as e:[m
+[31m-        print(f"Error creating/testing SQLite database: {e}")[m
+[31m-        exit(1)[m
+[31m-    [m
+[31m-    # Create schema using SQLAlchemy[m
+[31m-    try:[m
+[31m-        db.create_all()[m
+[31m-        print("Created database schema with SQLAlchemy")[m
+[31m-        [m
+[31m-        # Verify tables[m
+[31m-        from app.models import Submission[m
+[31m-        try:[m
+[31m-            # Try to add and query a test record[m
+[31m-            test_submission = Submission(subject="Test", context="Database repair test")[m
+[31m-            db.session.add(test_submission)[m
+[31m-            db.session.commit()[m
+[31m-            [m
+[31m-            # Query it back[m
+[31m-            test_result = Submission.query.filter_by(subject="Test").first()[m
+[31m-            if test_result and test_result.subject == "Test":[m
+[31m-                print("SQLAlchemy write/read test: SUCCESSFUL")[m
+[31m-                [m
+[31m-                # Clean up test data[m
+[31m-                db.session.delete(test_result)[m
+[31m-                db.session.commit()[m
+[31m-            else:[m
+[31m-                print("SQLAlchemy write/read test: FAILED - couldn't retrieve test record")[m
+[31m-        except Exception as e:[m
+[31m-            db.session.rollback()[m
+[31m-            print(f"SQLAlchemy write/read test FAILED: {e}")[m
+[31m-    except Exception as e:[m
+[31m-        print(f"Error creating schema with SQLAlchemy: {e}")[m
+[31m-        exit(1)[m
+[31m-    [m
+[31m-    print("\n=== DATABASE REPAIR COMPLETED SUCCESSFULLY ===")[m
+[31m-    print(f"Your database is now ready at: {db_path}")[m
+[31m-    print("You can now run the application with: python app.py") [m
+\ No newline at end of file[m
+[1mdiff --git a/init_db.py b/init_db.py[m
+[1mdeleted file mode 100644[m
+[1mindex 16e6bd8..0000000[m
+[1m--- a/init_db.py[m
+[1m+++ /dev/null[m
+[36m@@ -1,25 +0,0 @@[m
+[31m-#!/usr/bin/env python[m
+[31m-"""[m
+[31m-Database initialization script.[m
+[31m-Run this script to create and initialize the database.[m
+[31m-"""[m
+[31m-import os[m
+[31m-from app import create_app, db[m
+[31m-[m
+[31m-# Create the app with the factory pattern[m
+[31m-app = create_app()[m
+[31m-[m
+[31m-with app.app_context():[m
+[31m-    # Create the instance directory if it doesn't exist[m
+[31m-    if not os.path.exists('instance'):[m
+[31m-        os.makedirs('instance')[m
+[31m-        print("Created instance directory")[m
+[31m-    [m
+[31m-    # Initialize the database[m
+[31m-    db.create_all()[m
+[31m-    print("Database tables created")[m
+[31m-    [m
+[31m-    # Print database info[m
+[31m-    print(f"Database file: {app.config['SQLALCHEMY_DATABASE_URI']}")[m
+[31m-    [m
+[31m-    print("Database initialization complete") [m
+\ No newline at end of file[m
+[1mdiff --git a/init_local_db.py b/init_local_db.py[m
+[1mdeleted file mode 100644[m
+[1mindex 3807e21..0000000[m
+[1m--- a/init_local_db.py[m
+[1m+++ /dev/null[m
+[36m@@ -1,57 +0,0 @@[m
+[31m-#!/usr/bin/env python[m
+[31m-"""[m
+[31m-Local database initialization script.[m
+[31m-Use this to initialize the SQLite database for local development.[m
+[31m-"""[m
+[31m-import os[m
+[31m-import shutil[m
+[31m-from app import create_app, db[m
+[31m-[m
+[31m-print("Initializing local database...")[m
+[31m-[m
+[31m-# Create the app with the factory pattern[m
+[31m-app = create_app()[m
+[31m-[m
+[31m-with app.app_context():[m
+[31m-    # Create the instance directory if it doesn't exist[m
+[31m-    if not os.path.exists('instance'):[m
+[31m-        os.makedirs('instance')[m
+[31m-        print("Created instance directory")[m
+[31m-    [m
+[31m-    # Ensure instance directory has the right permissions[m
+[31m-    try:[m
+[31m-        os.chmod('instance', 0o777)[m
+[31m-        print("Set instance directory permissions")[m
+[31m-    except Exception as e:[m
+[31m-        print(f"Warning: Could not set permissions on instance directory: {e}")[m
+[31m-    [m
+[31m-    # Database path from config[m
+[31m-    db_uri = app.config['SQLALCHEMY_DATABASE_URI'][m
+[31m-    if db_uri.startswith('sqlite:///'):[m
+[31m-        db_path = db_uri.replace('sqlite:///', '')[m

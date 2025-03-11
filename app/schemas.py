@@ -1,6 +1,5 @@
-from app import ma
+from marshmallow import Schema, fields, validate
 from app.models import Submission
-from marshmallow import fields, validate, Schema
 
 class SubmissionSchema(Schema):
     """Schema for Submission model"""
