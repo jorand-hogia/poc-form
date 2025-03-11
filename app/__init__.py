@@ -36,7 +36,18 @@ def create_app(test_config=None):
         RESTX_MASK_SWAGGER=False,
         RESTX_ERROR_404_HELP=False,
     )
-
+    
+    # Fix SQLite URI for absolute paths
+    db_uri = app.config['SQLALCHEMY_DATABASE_URI']
+    if db_uri.startswith('sqlite:///') and not db_uri.startswith('sqlite:////'):
+        # It's a relative path, make sure it's relative to instance folder
+        if not in_container:
+            # For local dev, make sure it's under instance/
+            if not '/instance/' in db_uri and not '\\instance\\' in db_uri:
+                db_path = db_uri.replace('sqlite:///', 'sqlite:///instance/')
+                app.config['SQLALCHEMY_DATABASE_URI'] = db_path
+                print(f"Adjusted database URI: {db_path}")
+    
     # Enable proxy support and configure external URL handling
     app.config['PREFERRED_URL_SCHEME'] = 'https'
     app.config['APPLICATION_ROOT'] = os.environ.get('APPLICATION_ROOT', '/')
