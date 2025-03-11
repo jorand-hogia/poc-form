@@ -60,21 +60,22 @@ authorizations = {
 }
 
 api = Api(
-    api_bp, 
-    version='1.0', 
-    title='Submission API',
-    description='A simple API for managing subject/context submissions',
-    doc='/docs',  # This will be accessible at /api/docs
-    validate=True
+    api_bp,
+    version='1.0',
+    title='Form Submissions API',
+    description='API for managing form submissions',
+    doc='/docs',
+    authorizations=authorizations,
+    prefix='/api'
 )
 
-# Define namespaces
+# Create namespace
 ns = api.namespace('submissions', description='Submission operations')
 
-# Define models for request and response
+# Define models
 submission_model = api.model('Submission', {
-    'subject': fields.String(required=True, description='The subject of the submission', min_length=1, max_length=200),
-    'context': fields.String(required=True, description='The context of the submission', min_length=1)
+    'subject': fields.String(required=True, description='Subject of the submission', max_length=200),
+    'context': fields.String(required=True, description='Context of the submission')
 })
 
 submission_response = api.model('SubmissionResponse', {

@@ -1,10 +1,11 @@
-from flask import Flask
+from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_marshmallow import Marshmallow
 import os
 from flask_cors import CORS
 from flask_restx import Api
+import sys
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -16,7 +17,7 @@ def create_app(test_config=None):
     # Create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     
-    # Default configuration
+    # Configure the app
     app.config.from_mapping(
         SECRET_KEY=os.environ.get('SECRET_KEY', 'dev'),
         SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL', 'sqlite:////app/instance/submissions.db'),
@@ -29,6 +30,23 @@ def create_app(test_config=None):
         RESTX_ERROR_404_HELP=False,
     )
 
+    # Enable proxy support and configure external URL handling
+    app.config['PREFERRED_URL_SCHEME'] = 'https'
+    app.config['APPLICATION_ROOT'] = os.environ.get('APPLICATION_ROOT', '/')
+    
+    # Handle reverse proxy setup
+    class ReverseProxied(object):
+        def __init__(self, app):
+            self.app = app
+
+        def __call__(self, environ, start_response):
+            scheme = environ.get('HTTP_X_FORWARDED_PROTO')
+            if scheme:
+                environ['wsgi.url_scheme'] = scheme
+            return self.app(environ, start_response)
+
+    app.wsgi_app = ReverseProxied(app.wsgi_app)
+    
     # Debug output for database connection
     db_uri = app.config['SQLALCHEMY_DATABASE_URI']
     print(f"Database URI: {db_uri}")
