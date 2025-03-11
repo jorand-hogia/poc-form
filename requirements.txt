@@ -4,6 +4,7 @@ Flask-Migrate==4.0.5
 Flask-Marshmallow==0.15.0
 marshmallow-sqlalchemy==0.30.0
 Flask-RESTX==1.1.0
+Flask-CORS==4.0.0
 Werkzeug==2.3.7
 gunicorn==21.2.0
 pymysql==1.1.0 
