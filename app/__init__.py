@@ -19,7 +19,7 @@ def create_app(test_config=None):
     # Default configuration
     app.config.from_mapping(
         SECRET_KEY=os.environ.get('SECRET_KEY', 'dev'),
-        SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL', 'sqlite:///instance/submissions.db'),
+        SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL', 'sqlite:////app/instance/submissions.db'),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SQLALCHEMY_ECHO=True,  # Add SQL query logging
         # Add Swagger UI settings
@@ -30,10 +30,22 @@ def create_app(test_config=None):
     )
 
     # Debug output for database connection
-    print(f"Database URL: {app.config['SQLALCHEMY_DATABASE_URI']}")
+    db_uri = app.config['SQLALCHEMY_DATABASE_URI']
+    print(f"Database URI: {db_uri}")
     print(f"Instance path: {app.instance_path}")
     print(f"Current directory: {os.getcwd()}")
-    print(f"Instance folder exists: {os.path.exists(app.instance_path)}")
+    
+    # For SQLite, extract the database file path and check if it's accessible
+    if db_uri.startswith('sqlite:///'):
+        db_path = db_uri.replace('sqlite:///', '')
+        print(f"SQLite database file path: {db_path}")
+        db_dir = os.path.dirname(db_path)
+        print(f"Database directory: {db_dir}")
+        print(f"Database directory exists: {os.path.exists(db_dir)}")
+        print(f"Database directory is writable: {os.access(db_dir, os.W_OK)}")
+        print(f"Database file exists: {os.path.exists(db_path)}")
+        if os.path.exists(db_path):
+            print(f"Database file permissions: {os.stat(db_path).st_mode}")
     
     if test_config is None:
         # Load the instance config, if it exists, when not testing
@@ -46,8 +58,16 @@ def create_app(test_config=None):
     try:
         os.makedirs(app.instance_path, exist_ok=True)
         print(f"Created instance folder: {app.instance_path}")
+        if not os.access(app.instance_path, os.W_OK):
+            print(f"WARNING: Instance path is not writable: {app.instance_path}")
+            # Make it writable if possible
+            try:
+                os.chmod(app.instance_path, 0o777)
+                print(f"Applied permissions to instance folder")
+            except Exception as e:
+                print(f"Could not set permissions on instance folder: {str(e)}")
     except Exception as e:
-        print(f"Error creating instance folder: {str(e)}")
+        print(f"Error with instance folder: {str(e)}")
     
     # Initialize db
     db.init_app(app)
