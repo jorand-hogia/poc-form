@@ -17,10 +17,17 @@ def create_app(test_config=None):
     # Create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     
+    # Determine if we're running in a container or locally
+    in_container = os.path.exists('/.dockerenv')
+    
     # Configure the app
     app.config.from_mapping(
         SECRET_KEY=os.environ.get('SECRET_KEY', 'dev'),
-        SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL', 'sqlite:////app/instance/submissions.db'),
+        # Use different paths for container vs local development
+        SQLALCHEMY_DATABASE_URI=os.environ.get(
+            'DATABASE_URL', 
+            'sqlite:////app/instance/submissions.db' if in_container else 'sqlite:///instance/submissions.db'
+        ),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SQLALCHEMY_ECHO=True,  # Add SQL query logging
         # Add Swagger UI settings
