@@ -73,8 +73,7 @@ api = Api(
     title='Form Submissions API',
     description='API for managing form submissions',
     doc='/docs',
-    authorizations=authorizations,
-    prefix='/api'
+    authorizations=authorizations
 )
 
 # Create namespace
